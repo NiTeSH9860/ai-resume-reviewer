@@ -11,34 +11,41 @@ Upload a resume (PDF or `.txt`) and paste a target job description, and Gemini r
 - **Gaps** — specific missing skills, keywords, or unquantified claims
 - **Rewrite suggestions** — 2-3 weak bullet points rewritten to be more concrete or quantified
 
+Reviews can be downloaded as a formatted PDF report, and an optional consistency check runs the same review 3 times to check how stable the score is.
+
 ## Progress and findings
 
 ### Day 1 — Core pipeline
-Proved the pipeline end-to-end: a resume and JD sent to Gemini, with a prompt that forces structured JSON output instead of free-form text. Ran against hardcoded sample data first.
+Proved the pipeline end-to-end: a resume and JD sent to Gemini, with a prompt that forces structured JSON output instead of free-form text.
 
-**Finding:** without explicit constraints, the model's "improved" rewrites tended to just add stronger adjectives ("robust," "comprehensively," "efficiently") without adding any real information — technically more impressive-sounding, but not more informative.
+**Finding:** without explicit constraints, the model's "improved" rewrites tended to just add stronger adjectives ("robust," "comprehensively," "efficiently") without adding any real information.
 
 ### Day 2 — Real file input, tightened prompt, and a date-awareness fix
 
-**Real file input.** Resume and job description could be read from `.pdf` or `.txt` files (via `pypdf` for extraction) instead of hardcoded sample strings.
+**Real file input** — resume and JD read from `.pdf` or `.txt` files via `pypdf`.
 
-**Tightened rewrite prompt.** The model is explicitly instructed not to rely on vague intensifiers. Rewrites must either add a concrete number — clearly marked as an estimate for the candidate to verify — or get more specific about what was actually built. This produced noticeably better output: rewrites now name specific tools (e.g. "using scikit-learn pipelines") and include realistic placeholder metrics instead of just stronger adjectives.
+**Tightened rewrite prompt** — rewrites must now add a concrete number (marked as an estimate to verify) or get more specific about what was actually built, instead of relying on vague intensifiers.
 
-**Finding: LLM temporal blind spot on recent dates.** Testing against a real resume, Gemini flagged legitimate 2025–2026 course completion dates as a "red flag" and likely typo. The model's training cutoff predates those dates, so anything recent looked impossible from its internal sense of "now" — a false positive, not an actual resume issue.
-
-**Fix:** the prompt now explicitly passes today's real date and instructs the model to use it as ground truth rather than its own training cutoff, only flagging dates that are genuinely impossible (e.g. after today, or inconsistent with other dates on the resume).
+**Finding: LLM temporal blind spot on recent dates.** Gemini flagged legitimate 2025–2026 course dates on a real resume as a likely typo, since its training cutoff predates those dates. **Fix:** the prompt now explicitly passes today's real date and instructs the model to use it as ground truth rather than its own training cutoff.
 
 ### Day 3 — Streamlit web app
 
-Wrapped the proven pipeline in a Streamlit app: file uploader for the resume, a text box to paste the target job description, and a "Review Resume" button that displays the structured critique (score, strengths, gaps, expandable rewrite suggestions) directly in the browser.
+Wrapped the pipeline in a Streamlit app: file uploader for the resume, a text box for the target job description, and a "Review Resume" button that displays the critique directly in the browser. Shared logic was refactored into a standalone `reviewer.py` module, and the project was simplified to be app-only — the earlier CLI script and its sample data folder were dropped in favor of one clean entry point.
 
-Shared logic (Gemini call, prompt, file/upload readers) was refactored into a standalone `reviewer.py` module so the app has a single source of truth. The project was then simplified to be app-only — the earlier CLI script and its sample data folder were dropped in favor of one clean entry point.
+### Day 4 — Downloadable reports, consistency check, and caching
+
+**PDF report export** — every review can be downloaded as a formatted PDF (score, strengths, gaps, rewrite suggestions), giving users a real artifact instead of just on-screen text.
+
+**Consistency check (optional)** — a checkbox runs the same review 3 times on identical input and reports the mean score, range, and standard deviation, with a plain verdict on whether the score is stable — a sanity check on how much noise vs. signal is in a single score.
+
+**Caching** — identical resume + JD combinations are cached (via `st.cache_data`), so accidental re-runs on the same input don't burn extra API calls. This was added directly in response to hitting a real Gemini free-tier quota limit during development.
 
 ## How it works
 
 1. Resume is uploaded through the app (PDF via `pypdf`, or `.txt`); job description is pasted directly
-2. Both are sent to Gemini (`gemini-2.5-flash`) with a prompt that forces structured JSON output matching a fixed schema
+2. Both are sent to Gemini (`gemini-2.5-flash`) with a prompt that forces structured JSON output matching a fixed schema and grounds the model in the actual current date
 3. The app parses and displays the critique — score, strengths, gaps, and expandable rewrite suggestions
+4. Results can be downloaded as a PDF, and optionally cross-checked for consistency across repeated runs
 
 ## Setup
 
@@ -62,4 +69,4 @@ Upload your resume, paste a job description, click "Review Resume."
 
 ## Tech stack
 
-Python · Streamlit · Google Gemini API (`google-genai`) · pypdf
+Python · Streamlit · Google Gemini API (`google-genai`) · pypdf · reportlab
