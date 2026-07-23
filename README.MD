@@ -1,5 +1,7 @@
 # AI Resume Reviewer
 
+**🔗 Live app:** [ai-resume-reviewer-72kzxordjkye7gy3yurs8v.streamlit.app](https://ai-resume-reviewer-72kzxordjkye7gy3yurs8v.streamlit.app/)
+
 An LLM-powered resume reviewer that scores and critiques a resume against a target job description using Google Gemini, with structured, actionable feedback — delivered through a Streamlit web app.
 
 ## What it does
@@ -40,12 +42,18 @@ Wrapped the pipeline in a Streamlit app: file uploader for the resume, a text bo
 
 **Caching** — identical resume + JD combinations are cached (via `st.cache_data`), so accidental re-runs on the same input don't burn extra API calls. This was added directly in response to hitting a real Gemini free-tier quota limit during development.
 
+### Day 5 — Multiple job descriptions, and deployment
+
+**Multiple job descriptions in one pass** — the app now supports adding and removing multiple job description boxes, each with an optional label. Reviewing runs the same resume against every job description provided, with results shown in separate tabs so fit scores and gaps can be compared side by side across postings.
+
+**Deployed to Streamlit Community Cloud** — the app is now live and publicly accessible (see link above) rather than requiring anyone to clone the repo and run it locally. `reviewer.py` was updated to read the API key from either a local `.env` (for development) or Streamlit Cloud's secrets manager (for the deployed app), since the two environments handle secrets differently.
+
 ## How it works
 
-1. Resume is uploaded through the app (PDF via `pypdf`, or `.txt`); job description is pasted directly
-2. Both are sent to Gemini (`gemini-2.5-flash`) with a prompt that forces structured JSON output matching a fixed schema and grounds the model in the actual current date
-3. The app parses and displays the critique — score, strengths, gaps, and expandable rewrite suggestions
-4. Results can be downloaded as a PDF, and optionally cross-checked for consistency across repeated runs
+1. Resume is uploaded through the app (PDF via `pypdf`, or `.txt`); one or more job descriptions are pasted directly
+2. Each resume/JD pair is sent to Gemini (`gemini-2.5-flash`) with a prompt that forces structured JSON output matching a fixed schema and grounds the model in the actual current date
+3. The app parses and displays each critique in its own tab — score, strengths, gaps, and expandable rewrite suggestions
+4. Results can be downloaded as a PDF per job, and optionally cross-checked for consistency across repeated runs
 
 ## Setup
 
@@ -61,11 +69,14 @@ Get a key from [Google AI Studio](https://aistudio.google.com/apikey).
 
 ## Run it
 
+**Try it live:** [ai-resume-reviewer-72kzxordjkye7gy3yurs8v.streamlit.app](https://ai-resume-reviewer-72kzxordjkye7gy3yurs8v.streamlit.app/) — no setup required.
+
+**Or run locally:**
 ```bash
 streamlit run app.py
 ```
 
-Upload your resume, paste a job description, click "Review Resume."
+Upload your resume, paste one or more job descriptions, click "Review Resume."
 
 ## Tech stack
 
