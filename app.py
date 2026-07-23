@@ -131,7 +131,7 @@ if review_clicked:
 
                     with st.spinner(
                         f"[{label}] " + ("Loading cached result..." if was_cached
-                                          else "Sending to Gemini for review...")
+                                          else "Sending to ai for review...")
                     ):
                         review = cached_review_resume(resume_text, jd_text)
 
